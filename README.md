@@ -10,15 +10,18 @@ See [my blog post for more details](https://www.colinodell.com/blog/202207/diy-o
 
 ## Installation
 
-You can install this via the Chrome Web Store here: https://chrome.google.com/webstore/detail/google-meet-%3C%3E-home-assis/gghhlbjdgdemfjmkdfoiebpobebkkccm?hl=en&authuser=0
+You can install this via the Chrome Web Store here: https://chromewebstore.google.com/detail/google-meet-%3C%3E-home-assis/gghhlbjdgdemfjmkdfoiebpobebkkccm?hl=en&authuser=0
 
 Or you can download and build it yourself:
 
-1. Download this project
+1. Download this project from GitHub
 2. Run `yarn install && yarn build` in the repo root
 3. Visit [`chrome://extensions`](chrome://extensions) in your browser
 4. Enable Developer mode
 5. Click on "Load unpacked extension" and select the `dist` folder that yarn built
+
+If you need a portable build artifact, zip the generated `dist` directory after
+building and load the unpacked contents of that archive.
 
 ## Configuration
 
@@ -77,7 +80,7 @@ Personally, I've repurposed an older [Adafruit Weather Lamp](https://learn.adafr
 
 ## FAQs
 
-**Can I just download this from the Chrome store?** Yes you can! https://chrome.google.com/webstore/detail/google-meet-%3C%3E-home-assis/gghhlbjdgdemfjmkdfoiebpobebkkccm?hl=en&authuser=0
+**Can I just download this from the Chrome store?** Yes you can! https://chromewebstore.google.com/detail/google-meet-%3C%3E-home-assis/gghhlbjdgdemfjmkdfoiebpobebkkccm?hl=en&authuser=0
 
 **Does this support other browsers and/or meeting providers?** No, and I don't have plans to do so, but PRs to add support are certainly welcome!
 

@@ -1,16 +1,21 @@
 import { Config } from "./config";
 
 async function setEntityStateAPI(config: Config, newValue: boolean) {
-    await fetch(config.host + "/api/states/" + config.entity_id, {
-        method: "POST",
-        headers: {
-            Authorization: "Bearer " + config.token,
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-            state: newValue ? "on" : "off",
-        }),
-    });
+    await fetch(
+        config.host +
+            "/api/services/homeassistant/" +
+            (newValue ? "turn_on" : "turn_off"),
+        {
+            method: "POST",
+            headers: {
+                Authorization: "Bearer " + config.token,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                entity_id: config.entity_id,
+            }),
+        }
+    );
 }
 
 async function setEntityStateWebhook(config: Config, newValue: boolean) {
