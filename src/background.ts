@@ -73,16 +73,20 @@ function handleReconciliationRequest(forceSend = false) {
     });
 }
 
-function configureHeartbeat() {
-    chrome.alarms.create(heartbeatAlarmName, { periodInMinutes: 1 });
+function ensureHeartbeat() {
+    chrome.alarms.get(heartbeatAlarmName, (alarm) => {
+        if (!alarm) {
+            chrome.alarms.create(heartbeatAlarmName, { periodInMinutes: 1 });
+        }
+    });
 }
 
+ensureHeartbeat();
+
 chrome.runtime.onInstalled.addListener(() => {
-    configureHeartbeat();
     handleReconciliationRequest();
 });
 chrome.runtime.onStartup.addListener(() => {
-    configureHeartbeat();
     handleReconciliationRequest();
 });
 chrome.alarms.onAlarm.addListener((alarm) => {

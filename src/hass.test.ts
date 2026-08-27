@@ -1,5 +1,5 @@
 import { Config } from "./config";
-import { setEntityState } from "./hass";
+import { HOME_ASSISTANT_REQUEST_TIMEOUT_MS, setEntityState } from "./hass";
 
 const apiConfig: Config = {
     host: "https://ha.example.test",
@@ -17,6 +17,7 @@ describe("setEntityState", () => {
     });
 
     afterEach(() => {
+        jest.useRealTimers();
         jest.resetAllMocks();
     });
 
@@ -34,6 +35,7 @@ describe("setEntityState", () => {
                 body: JSON.stringify({
                     entity_id: "input_boolean.in_meeting",
                 }),
+                signal: expect.any(AbortSignal),
             }
         );
     });
@@ -71,7 +73,47 @@ describe("setEntityState", () => {
                 body: JSON.stringify({
                     value: "on",
                 }),
+                signal: expect.any(AbortSignal),
             }
         );
+    });
+
+    it.each([
+        ["api", apiConfig, "Home Assistant API request failed: HTTP 503"],
+        [
+            "webhook",
+            {
+                ...apiConfig,
+                method: "webhook" as const,
+                webhook_url: "https://ha.example.test/api/webhook/meet",
+            },
+            "Home Assistant webhook request failed: HTTP 503",
+        ],
+    ])("rejects non-2xx %s responses", async (_, config, expectedMessage) => {
+        (global.fetch as jest.Mock).mockResolvedValue({ status: 503 });
+
+        await expect(setEntityState(config, true)).rejects.toMatchObject({
+            message: expectedMessage,
+        });
+    });
+
+    it("aborts a hung Home Assistant request after the request timeout", async () => {
+        jest.useFakeTimers();
+        let requestSignal: AbortSignal | undefined;
+        (global.fetch as jest.Mock).mockImplementation(
+            (_input: RequestInfo, init: RequestInit) =>
+                new Promise((_resolve, reject) => {
+                    requestSignal = init.signal as AbortSignal;
+                    requestSignal.addEventListener("abort", () => {
+                        reject(new Error("request aborted"));
+                    });
+                })
+        );
+
+        const request = setEntityState(apiConfig, true);
+        jest.advanceTimersByTime(HOME_ASSISTANT_REQUEST_TIMEOUT_MS);
+
+        await expect(request).rejects.toThrow("request aborted");
+        expect(requestSignal?.aborted).toBe(true);
     });
 });
