@@ -9,13 +9,18 @@ const queryTabs = jest.fn();
 const getAlarm = jest.fn();
 const createAlarm = jest.fn();
 const addAlarmListener = jest.fn();
+const addStartupListener = jest.fn();
 
-function loadBackground(existingAlarm?: chrome.alarms.Alarm) {
+function loadBackground(
+    existingAlarm?: chrome.alarms.Alarm,
+    sessionState: Record<string, unknown> = {}
+) {
     jest.resetModules();
     queryTabs.mockReset();
     getAlarm.mockReset();
     createAlarm.mockReset();
     addAlarmListener.mockReset();
+    addStartupListener.mockReset();
     setEntityState.mockReset();
     setEntityState.mockResolvedValue(undefined);
     getAlarm.mockImplementation(
@@ -33,9 +38,19 @@ function loadBackground(existingAlarm?: chrome.alarms.Alarm) {
             setBadgeText: jest.fn(),
             setBadgeBackgroundColor: jest.fn(),
         },
+        storage: {
+            session: {
+                get: jest.fn(async (key: string) => ({
+                    [key]: sessionState[key],
+                })),
+                set: jest.fn(async (items: Record<string, unknown>) => {
+                    Object.assign(sessionState, items);
+                }),
+            },
+        },
         runtime: {
             onInstalled: { addListener: jest.fn() },
-            onStartup: { addListener: jest.fn() },
+            onStartup: { addListener: addStartupListener },
         },
         tabs: {
             query: queryTabs,
@@ -106,6 +121,43 @@ describe("meeting state reconciliation", () => {
         queryTabs.mockResolvedValue([{ id: 1 }]);
 
         await requestMeetingStateReconciliation(true);
+
+        expect(setEntityState).toHaveBeenCalledTimes(1);
+        expect(setEntityState).toHaveBeenCalledWith({}, true);
+    });
+
+    it("does not send idle heartbeats after a service worker restart", async () => {
+        const sessionState = {};
+        const firstWorker = loadBackground(undefined, sessionState);
+        queryTabs.mockResolvedValue([]);
+
+        await firstWorker.requestMeetingStateReconciliation();
+        loadBackground(undefined, sessionState);
+        const alarmListener = addAlarmListener.mock.calls[0][0];
+        queryTabs.mockResolvedValue([]);
+        alarmListener({ name: heartbeatAlarmName });
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        expect(setEntityState).not.toHaveBeenCalled();
+    });
+
+    it("reasserts idle state after a browser restart clears session storage", async () => {
+        loadBackground(undefined, {});
+        const startupListener = addStartupListener.mock.calls[0][0];
+        queryTabs.mockResolvedValue([]);
+        startupListener();
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        expect(setEntityState).toHaveBeenCalledTimes(1);
+        expect(setEntityState).toHaveBeenCalledWith({}, false);
+    });
+
+    it("reasserts an active meeting after a browser restart", async () => {
+        loadBackground(undefined, {});
+        const startupListener = addStartupListener.mock.calls[0][0];
+        queryTabs.mockResolvedValue([{ id: 1 }]);
+        startupListener();
+        await new Promise((resolve) => setTimeout(resolve, 0));
 
         expect(setEntityState).toHaveBeenCalledTimes(1);
         expect(setEntityState).toHaveBeenCalledWith({}, true);

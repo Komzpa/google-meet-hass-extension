@@ -7,6 +7,25 @@ let reconciliationRequested = false;
 let heartbeatRequested = false;
 
 const heartbeatAlarmName = "meeting-state-heartbeat";
+const acceptedMeetingStateKey = "acceptedMeetingState";
+
+type StorageWithSession = typeof chrome.storage & {
+    session: chrome.storage.StorageArea;
+};
+
+// The manifest requires Chrome 102+, where storage.session was introduced.
+const sessionStorage = (chrome.storage as StorageWithSession).session;
+
+async function restoreAcceptedMeetingState() {
+    if (wasInMeeting !== null) {
+        return;
+    }
+
+    const storedState = await sessionStorage.get(acceptedMeetingStateKey);
+    if (typeof storedState[acceptedMeetingStateKey] === "boolean") {
+        wasInMeeting = storedState[acceptedMeetingStateKey];
+    }
+}
 
 function updateBadge(isInMeeting: boolean) {
     chrome.action.setBadgeText({ text: isInMeeting ? "mtg" : "" });
@@ -16,6 +35,8 @@ function updateBadge(isInMeeting: boolean) {
 }
 
 async function reconcileMeetingState(forceSend: boolean) {
+    await restoreAcceptedMeetingState();
+
     const tabs = await chrome.tabs.query({
         url: "https://meet.google.com/*-*-*",
     });
@@ -34,6 +55,7 @@ async function reconcileMeetingState(forceSend: boolean) {
 
     // Keep the old value until HA accepted the update, so a later event can
     // retry a failed final off (or any other failed transition).
+    await sessionStorage.set({ [acceptedMeetingStateKey]: isInMeeting });
     wasInMeeting = isInMeeting;
 }
 
