@@ -66,6 +66,51 @@ automation:
 
 The webhook URL would be: `https://your-ha-domain.com/api/webhook/google_meet_status`
 
+### Reliable cleanup when Chrome closes
+
+Chrome may terminate the extension before its final Home Assistant request
+finishes. To ensure the input boolean does not remain on after the browser
+closes, add the automation below in Home Assistant and replace
+`input_boolean.in_meeting` with the entity configured in the extension. This is
+required for reliable cleanup with either the API or webhook method.
+
+The extension sends an `on` heartbeat once per minute while a meeting tab is
+open. Each heartbeat restarts this five-minute lease. Closing the last meeting
+tab normally sends `off` immediately; if Chrome exits before that request is
+delivered, Home Assistant turns the input boolean off when the lease expires.
+
+```yaml
+alias: Google Meet stale session guard
+id: google_meet_stale_session_guard
+triggers:
+  - trigger: event
+    event_type: call_service
+    event_data:
+      domain: homeassistant
+      service: turn_on
+      service_data:
+        entity_id: input_boolean.in_meeting
+  - trigger: state
+    entity_id: input_boolean.in_meeting
+    to: "on"
+  - trigger: homeassistant
+    event: start
+conditions:
+  - condition: state
+    entity_id: input_boolean.in_meeting
+    state: "on"
+actions:
+  - delay: "00:05:00"
+  - condition: state
+    entity_id: input_boolean.in_meeting
+    state: "on"
+  - action: input_boolean.turn_off
+    target:
+      entity_id: input_boolean.in_meeting
+mode: restart
+max_exceeded: silent
+```
+
 ![](screenshot.png)
 
 ## Testing
