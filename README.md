@@ -10,9 +10,7 @@ See [my blog post for more details](https://www.colinodell.com/blog/202207/diy-o
 
 ## Installation
 
-You can install this via the Chrome Web Store here: https://chromewebstore.google.com/detail/google-meet-%3C%3E-home-assis/gghhlbjdgdemfjmkdfoiebpobebkkccm?hl=en&authuser=0
-
-Or you can download and build it yourself:
+Build and install the extension from source:
 
 1. Download this project from GitHub
 2. Run `yarn install && yarn build` in the repo root
@@ -90,6 +88,29 @@ triggers:
       service: turn_on
       service_data:
         entity_id: input_boolean.in_meeting
+  - trigger: event
+    event_type: call_service
+    event_data:
+      domain: homeassistant
+      service: turn_on
+      service_data:
+        entity_id:
+          - input_boolean.in_meeting
+  - trigger: event
+    event_type: call_service
+    event_data:
+      domain: input_boolean
+      service: turn_on
+      service_data:
+        entity_id: input_boolean.in_meeting
+  - trigger: event
+    event_type: call_service
+    event_data:
+      domain: input_boolean
+      service: turn_on
+      service_data:
+        entity_id:
+          - input_boolean.in_meeting
   - trigger: state
     entity_id: input_boolean.in_meeting
     to: "on"
@@ -125,7 +146,7 @@ Personally, I've repurposed an older [Adafruit Weather Lamp](https://learn.adafr
 
 ## FAQs
 
-**Can I just download this from the Chrome store?** Yes you can! https://chromewebstore.google.com/detail/google-meet-%3C%3E-home-assis/gghhlbjdgdemfjmkdfoiebpobebkkccm?hl=en&authuser=0
+**Can I just download this from the Chrome store?** The store listing is currently unavailable. Build and load the extension from source using the [installation steps above](#installation).
 
 **Does this support other browsers and/or meeting providers?** No, and I don't have plans to do so, but PRs to add support are certainly welcome!
 

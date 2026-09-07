@@ -117,7 +117,12 @@ describe("meeting state reconciliation", () => {
     });
 
     it("renews the Home Assistant lease while a meeting remains open", async () => {
-        const { requestMeetingStateReconciliation } = loadBackground();
+        const { requestMeetingStateReconciliation } = loadBackground(
+            undefined,
+            {
+                acceptedMeetingState: true,
+            }
+        );
         queryTabs.mockResolvedValue([{ id: 1 }]);
 
         await requestMeetingStateReconciliation(true);
